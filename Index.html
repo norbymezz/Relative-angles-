@@ -1,0 +1,100 @@
+<!DOCTYPE html><html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Reloj de Relojes</title>
+  <style>
+    body { background: #111; color: white; font-family: sans-serif; text-align: center; }
+    canvas { background: #000; display: block; margin: 0 auto; border: 1px solid #444; }
+    .controls { margin-top: 10px; }
+    label { margin-right: 10px; }
+    #info { font-size: 13px; margin-top: 5px; color: #ccc; }
+  </style>
+</head>
+<body>
+  <h2>🌀 Reloj de Relojes: Epiciclos encadenados</h2>
+  <canvas id="canvas" width="600" height="600"></canvas>  <div class="controls">
+    <label>Velocidad 1 (rad/s): <input type="number" id="w1" value="0.05" step="0.01"></label>
+    <label>Velocidad 2 (rad/s): <input type="number" id="w2" value="0.07" step="0.01"></label>
+    <label>Radio 1: <input type="number" id="r1" value="100" step="1"></label>
+    <label>Radio 2: <input type="number" id="r2" value="60" step="1"></label>
+    <button id="resetBtn">🔁 Reset Trayectoria</button>
+  </div>
+  <div id="info"></div>  <script>
+    const canvas = document.getElementById('canvas');
+    const ctx = canvas.getContext('2d');
+    const w1Input = document.getElementById('w1');
+    const w2Input = document.getElementById('w2');
+    const r1Input = document.getElementById('r1');
+    const r2Input = document.getElementById('r2');
+    const resetBtn = document.getElementById('resetBtn');
+    const info = document.getElementById('info');
+
+    let time = 0;
+    let trace = [];
+
+    resetBtn.addEventListener('click', () => {
+      trace = [];
+      time = 0;
+    });
+
+    function hsvToRgb(h, s, v) {
+      let f = (n, k = (n + h * 6) % 6) => v - v * s * Math.max(Math.min(k, 4 - k, 1), 0);
+      return `rgb(${f(5)*255},${f(3)*255},${f(1)*255})`;
+    }
+
+    function draw() {
+      const w1 = parseFloat(w1Input.value);
+      const w2 = parseFloat(w2Input.value);
+      const r1 = parseFloat(r1Input.value);
+      const r2 = parseFloat(r2Input.value);
+
+      time += 0.05;
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+      const cx = canvas.width / 2;
+      const cy = canvas.height / 2;
+
+      const angle1 = w1 * time;
+      const angle2 = w2 * time;
+      const x1 = cx + r1 * Math.cos(angle1);
+      const y1 = cy + r1 * Math.sin(angle1);
+      const x2 = x1 + r2 * Math.cos(angle2);
+      const y2 = y1 + r2 * Math.sin(angle2);
+
+      trace.push({x: x2, y: y2, t: time});
+      if (trace.length > 2000) trace.shift();
+
+      ctx.beginPath();
+      for (let i = 0; i < trace.length; i++) {
+        const p = trace[i];
+        const hue = ((w1 * p.t) % (2 * Math.PI)) / (2 * Math.PI); // ciclo del primer ángulo
+        ctx.strokeStyle = hsvToRgb(hue, 1, 1);
+        if (i === 0) ctx.moveTo(p.x, p.y);
+        else ctx.lineTo(p.x, p.y);
+      }
+      ctx.lineWidth = 1;
+      ctx.stroke();
+
+      ctx.strokeStyle = 'white';
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.moveTo(cx, cy);
+      ctx.lineTo(x1, y1);
+      ctx.lineTo(x2, y2);
+      ctx.stroke();
+
+      ctx.fillStyle = 'red';
+      ctx.beginPath(); ctx.arc(cx, cy, 4, 0, 2 * Math.PI); ctx.fill();
+      ctx.beginPath(); ctx.arc(x1, y1, 4, 0, 2 * Math.PI); ctx.fill();
+      ctx.beginPath(); ctx.arc(x2, y2, 4, 0, 2 * Math.PI); ctx.fill();
+
+      const relAngle = (((angle1 - angle2) % (2 * Math.PI)) * 180 / Math.PI).toFixed(1);
+      const relRatio = (w1 / w2).toFixed(3);
+      info.innerText = `Ángulo relativo: ${relAngle}°,  Relación de velocidades: ${relRatio}`;
+
+      requestAnimationFrame(draw);
+    }
+
+    draw();
+  </script></body>
+</html>
