@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>Números huérfanos 1..10000</title>
+  <style>
+    body {
+      font-family: system-ui, sans-serif;
+      background: #fafafa;
+      color: #222;
+      margin: 20px;
+    }
+    #mapa {
+      border: 1px solid #ccc;
+      display: block;
+      margin-top: 10px;
+    }
+    .legend {
+      font-size: 0.9rem;
+      margin-top: 6px;
+    }
+    code {
+      background: #eee;
+      padding: 2px 4px;
+      border-radius: 3px;
+    }
+  </style>
+</head>
+<body>
+  <h1>Números huérfanos en 1..10000</h1>
+  <p>
+    Consideramos A = B = {1,…,100}, P = {a·b | a∈A, b∈B}.<br>
+    Un número es <strong>huérfano</strong> si no puede escribirse como a·b con 1≤a,b≤100.
+  </p>
+
+  <canvas id="mapa" width="1000" height="140"></canvas>
+  <div id="stats"></div>
+  <div class="legend">
+    <span style="display:inline-block;width:12px;height:10px;background:#555;margin-right:4px;"></span>
+    productos M(n)=1 (alrededor de y ≈ 100) <br>
+    <span style="display:inline-block;width:12px;height:10px;background:red;margin-right:4px;"></span>
+    huérfanos H(n)=1 (puntos rojos arriba, y ≈ 40)
+  </div>
+
+  <script>
+    const N_MAX = 10000;
+    const FACTOR_MAX = 100;
+
+    // Construye P = {a*b | 1<=a,b<=100}
+    const productos = new Set();
+    for (let a = 1; a <= FACTOR_MAX; a++) {
+      for (let b = 1; b <= FACTOR_MAX; b++) {
+        productos.add(a * b);
+      }
+    }
+
+    // Lista de huérfanos: n no generado por ningún producto
+    const huerfanos = [];
+    for (let n = 1; n <= N_MAX; n++) {
+      if (!productos.has(n)) {
+        huerfanos.push(n);
+      }
+    }
+
+    // Test simple de primalidad (como en el Python del texto)
+    function esPrimo(n) {
+      if (n < 2) return false;
+      if (n % 2 === 0) return n === 2;
+      const r = Math.floor(Math.sqrt(n));
+      for (let f = 3; f <= r; f += 2) {
+        if (n % f === 0) return false;
+      }
+      return true;
+    }
+
+    const todosPrimosMayor100 = huerfanos.every(n => n > 100 && esPrimo(n));
+
+    // Mostrar stats textuales
+    const stats = document.getElementById('stats');
+    stats.textContent =
+      `Total huérfanos: ${huerfanos.length}. ` +
+      `¿Todos son primos > 100? ${todosPrimosMayor100 ? 'Sí' : 'No'}. ` +
+      `Primeros huérfanos: ${huerfanos.slice(0, 15).join(', ')}…`;
+
+    // Dibujo en canvas: banda M(n) + puntos H(n)
+    const canvas = document.getElementById('mapa');
+    const ctx = canvas.getContext('2d');
+    const W = canvas.width;
+    const H = canvas.height;
+
+    // Fondo
+    ctx.fillStyle = '#ffffff';
+    ctx.fillRect(0, 0, W, H);
+
+    const yProductosBase = H * 0.7; // banda de productos
+    const yHuerfanos = H * 0.3;     // puntos de huérfanos
+
+    // Línea de referencia para M(n)
+    ctx.strokeStyle = '#e0e0e0';
+    ctx.beginPath();
+    ctx.moveTo(0, yProductosBase + 5);
+    ctx.lineTo(W, yProductosBase + 5);
+    ctx.stroke();
+
+    // Dibujo de productos (M(n)=1)
+    ctx.strokeStyle = '#555';
+    for (let n = 1; n <= N_MAX; n++) {
+      if (!productos.has(n)) continue;
+      const x = Math.floor((n - 1) * W / N_MAX);
+      ctx.beginPath();
+      ctx.moveTo(x, yProductosBase);
+      ctx.lineTo(x, yProductosBase + 10);
+      ctx.stroke();
+    }
+
+    // Dibujo de huérfanos (H(n)=1)
+    ctx.fillStyle = 'red';
+    for (const n of huerfanos) {
+      const x = Math.floor((n - 1) * W / N_MAX);
+      ctx.fillRect(x, yHuerfanos, 1, 4);
+    }
+
+    // Opcional: mostrar tooltip simple con n al mover el mouse
+    canvas.addEventListener('mousemove', (ev) => {
+      const rect = canvas.getBoundingClientRect();
+      const x = ev.clientX - rect.left;
+      const n = 1 + Math.round(x * N_MAX / W);
+      canvas.title = `n ≈ ${n}`;
+    });
+  </script>
+</body>
+</html>
